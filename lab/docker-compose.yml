@@ -1,0 +1,83 @@
+# Environnement de lab OODA : un par stagiaire, sur son poste (ou sa VM).
+#   docker compose up -d        demarrer
+#   docker compose ps           etat
+#   docker compose down -v      tout effacer (remise a zero)
+# Prerequis : ./kind-setup.sh execute AVANT (cree le reseau "kind" utilise par Jenkins).
+services:
+  jenkins:
+    build: ./jenkins
+    user: root                      # lab uniquement : acces a /var/run/docker.sock
+    ports: ["8080:8080"]
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./jenkins/kubeconfig:/root/.kube/config:ro
+    networks: [devops, kind]
+    depends_on: [nexus, sonarqube]
+
+  nexus:
+    image: sonatype/nexus3:3.70.1
+    ports:
+      - "8081:8081"                 # UI + depots Maven
+      - "8082:8082"                 # registre Docker (connecteur HTTP a creer, atelier 06)
+    environment:
+      NEXUS_SECURITY_RANDOMPASSWORD: "false"   # admin / admin123 (lab uniquement)
+    volumes: [nexus_data:/nexus-data]
+    networks: [devops]
+
+  sonarqube:
+    image: sonarqube:community
+    ports: ["9000:9000"]
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+    depends_on: [sonar-db]
+    networks: [devops]
+
+  sonar-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes: [sonar_db:/var/lib/postgresql/data]
+    networks: [devops]
+
+  # Machine cible pour Ansible (atelier 05) : Debian + sshd, utilisateur "deploy"
+  target:
+    build: ./target
+    ports: ["8090:8080"]            # l'appli deployee par Ansible repond sur http://localhost:8090
+    networks: [devops]
+
+  # Supervision (atelier 07) : scrape le service NodePort expose par kind sur localhost:8085
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    ports: ["9090:9090"]
+    volumes: [./prometheus.yml:/etc/prometheus/prometheus.yml:ro]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    networks: [devops]
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    ports: ["3000:3000"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes: [./grafana-datasource.yml:/etc/grafana/provisioning/datasources/ds.yml:ro]
+    networks: [devops]
+
+networks:
+  devops:
+  kind:
+    external: true
+
+volumes:
+  jenkins_home:
+  nexus_data:
+  sonar_data:
+  sonar_extensions:
+  sonar_db:

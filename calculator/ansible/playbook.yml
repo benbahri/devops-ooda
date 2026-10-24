@@ -1,0 +1,58 @@
+---
+# Deploie le jar du microservice sur la machine "cible" (container Debian + sshd du lab).
+# Lancement manuel : ansible-playbook -i ansible/inventory.ini ansible/playbook.yml -e jar=target/calculator.jar
+- name: Deployer calculator sur la cible
+  hosts: cible
+  become: true
+  vars:
+    jar: target/calculator.jar
+    app_dir: /opt/calculator
+    app_port: 8080
+  tasks:
+    - name: Installer le JRE
+      ansible.builtin.apt:
+        name: openjdk-21-jre-headless
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Creer le repertoire applicatif
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: deploy
+        mode: "0755"
+
+    - name: Copier le jar
+      ansible.builtin.copy:
+        src: "{{ jar }}"
+        dest: "{{ app_dir }}/calculator.jar"
+        owner: deploy
+        mode: "0644"
+      register: jar_copie
+
+    - name: Installer le script de demarrage
+      ansible.builtin.copy:
+        dest: "{{ app_dir }}/run.sh"
+        owner: deploy
+        mode: "0755"
+        content: |
+          #!/bin/sh
+          pkill -f calculator.jar || true
+          nohup java -jar {{ app_dir }}/calculator.jar --server.port={{ app_port }} > {{ app_dir }}/app.log 2>&1 &
+      register: script_copie
+
+    # Pas de systemd dans un container : on relance via le script seulement si quelque chose a change
+    - name: (Re)demarrer l'application si le jar ou le script a change
+      ansible.builtin.command: "{{ app_dir }}/run.sh"
+      become_user: deploy
+      when: jar_copie.changed or script_copie.changed
+
+    - name: Attendre que l'application reponde
+      ansible.builtin.uri:
+        url: "http://localhost:{{ app_port }}/actuator/health"
+        status_code: 200
+      register: health
+      retries: 20
+      delay: 3
+      until: health.status == 200

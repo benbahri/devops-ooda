@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.5</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>fr.plb.devops</groupId>
+  <artifactId>calculator</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>calculator</name>
+  <description>Microservice fil rouge de la formation DevOps OODA</description>
+
+  <properties>
+    <java.version>21</java.version>
+    <!-- Renseigne le projet Sonar sans option en ligne de commande -->
+    <sonar.projectKey>calculator</sonar.projectKey>
+    <sonar.host.url>http://localhost:9000</sonar.host.url>
+    <!-- Surcharge depuis Jenkins : -Dnexus.url=http://nexus:8081 -->
+    <nexus.url>http://localhost:8081</nexus.url>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <!-- /actuator/health : sondes liveness/readiness (Kubernetes) et metriques (Prometheus) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>calculator</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.12</version>
+        <executions>
+          <execution>
+            <goals><goal>prepare-agent</goal></goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals><goal>report</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>4.0.0.4121</version>
+      </plugin>
+    </plugins>
+  </build>
+
+  <!-- Depot Nexus du lab. Identifiants : serveur "nexus" dans ~/.m2/settings.xml (voir atelier 03) -->
+  <distributionManagement>
+    <repository>
+      <id>nexus</id>
+      <url>${nexus.url}/repository/maven-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>nexus</id>
+      <url>${nexus.url}/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
+</project>

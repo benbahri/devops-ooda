@@ -1,0 +1,77 @@
+// Pipeline de reference (corrige de l'atelier 04, complete aux ateliers 05, 06 et 07).
+// Les stages "Deploy Ansible", "Docker" et "Kubernetes" sont ajoutes progressivement.
+pipeline {
+    agent any
+
+    tools {
+        maven 'maven'   // outil declare dans Manage Jenkins > Tools
+    }
+
+    environment {
+        NEXUS_DOCKER = 'localhost:8082'
+        IMAGE        = "${NEXUS_DOCKER}/calculator"
+        VERSION      = "1.0.${BUILD_NUMBER}"
+    }
+
+    options {
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    stages {
+        stage('Checkout') {
+            steps { checkout scm }
+        }
+
+        stage('Build & tests') {
+            steps { sh 'mvn -B clean verify' }
+            post {
+                always { junit 'target/surefire-reports/*.xml' }
+            }
+        }
+
+        stage('Qualite (SonarQube)') {
+            steps {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    sh 'mvn -B sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -Dsonar.token=$SONAR_TOKEN'
+                }
+            }
+        }
+
+        stage('Publier le jar (Nexus)') {
+            steps {
+                sh 'mvn -B deploy -DskipTests -Dnexus.url=http://nexus:8081 -s /var/jenkins_home/settings.xml'
+            }
+        }
+
+        // --- Atelier 05 : decommenter ---
+        // stage('Deploy Ansible') {
+        //     steps {
+        //         sh 'ansible-playbook -i ansible/inventory.ini ansible/playbook.yml -e jar=target/calculator.jar'
+        //     }
+        // }
+
+        // --- Atelier 06 : decommenter ---
+        // stage('Image Docker') {
+        //     steps {
+        //         sh '''
+        //           docker build --build-arg APP_VERSION=$VERSION -t $IMAGE:$VERSION -t $IMAGE:latest .
+        //           docker push $IMAGE:$VERSION
+        //           docker push $IMAGE:latest
+        //         '''
+        //     }
+        // }
+
+        // --- Atelier 07 : decommenter ---
+        // stage('Deploy Kubernetes') {
+        //     steps {
+        //         sh '''
+        //           kind load docker-image $IMAGE:$VERSION --name devops
+        //           kubectl apply -f k8s/
+        //           kubectl -n calculator-lab set image deployment/calculator calculator=$IMAGE:$VERSION
+        //           kubectl -n calculator-lab rollout status deployment/calculator --timeout=120s
+        //         '''
+        //     }
+        // }
+    }
+}
