@@ -1,4 +1,5 @@
-FROM debian:12-slim
+# Debian 12 ne fournit que OpenJDK 17 ; OpenJDK 21 arrive avec Debian 13
+FROM debian:13-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
       openssh-server python3 sudo ca-certificates procps \
     && rm -rf /var/lib/apt/lists/* && mkdir -p /run/sshd
