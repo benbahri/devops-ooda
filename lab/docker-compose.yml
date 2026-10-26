@@ -12,6 +12,9 @@ services:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - ./jenkins/kubeconfig:/root/.kube/config:ro
+      - ./jenkins/casc:/var/jenkins_home/casc:ro   # atelier 04 : fichier Configuration as Code
+    # environment:
+    #   CASC_JENKINS_CONFIG: /var/jenkins_home/casc/jenkins.yaml   # applique le fichier a chaque demarrage
     networks: [devops, kind]
     depends_on: [nexus, sonarqube]
 

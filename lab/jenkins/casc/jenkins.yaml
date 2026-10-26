@@ -1,0 +1,54 @@
+# Jenkins Configuration as Code (JCasC) - fichier de demonstration de l'atelier 04.
+# Il decrit, en YAML versionnable, ce que l'on regle sinon a la souris dans "Manage Jenkins".
+# Lab uniquement : identifiants admin/admin.
+#
+# Application :
+#   a chaud : Manage Jenkins > System > Configuration as Code > "Path or URL"
+#             = /var/jenkins_home/casc/jenkins.yaml > "Apply new configuration"
+#   au demarrage : variable CASC_JENKINS_CONFIG (voir docker-compose.yml, ligne commentee)
+
+jenkins:
+  systemMessage: "Lab OODA - configuration appliquee depuis jenkins.yaml"   # banniere de la page d'accueil
+  numExecutors: 2                       # Manage Jenkins > Nodes > Built-In Node > Configure
+  securityRealm:                        # Manage Jenkins > Security
+    local:
+      allowsSignup: false
+      users:
+        - id: admin
+          password: admin
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+tool:                                   # Manage Jenkins > Tools
+  maven:
+    installations:
+      - name: maven                     # nom utilise par  tools { maven 'maven' }  dans le Jenkinsfile
+        home: /usr/share/maven          # Maven est installe dans l'image Jenkins
+      # - name: maven-ui                # ajoutez-le ici pour qu'il survive aux rechargements (exercice)
+      #   home: /usr/share/maven
+
+unclassified:                           # Manage Jenkins > System
+  location:
+    url: http://localhost:8080/
+  sonarGlobalConfiguration:             # Manage Jenkins > System > SonarQube servers (plugin "sonar")
+    buildWrapperEnabled: true           # case "Environment variables" : active withSonarQubeEnv
+    installations:
+      - name: sonarqube                 # nom utilisable par  withSonarQubeEnv('sonarqube')
+        serverUrl: http://sonarqube:9000    # nom du service Compose, pas localhost
+        credentialsId: sonar-token      # le credential (secret text) de l'etape 2 de l'atelier
+      # - name: sonar-ui                # ajoutez-le ici pour qu'il survive aux rechargements (exercice)
+      #   serverUrl: http://sonarqube:9000
+      #   credentialsId: sonar-token
+
+# Les secrets ne s'ecrivent JAMAIS en clair dans ce fichier : on lit une variable d'environnement.
+# Decommentez pour creer le credential du jeton Sonar (ecrase le credential cree a la main !).
+# credentials:
+#   system:
+#     domainCredentials:
+#       - credentials:
+#           - string:
+#               scope: GLOBAL
+#               id: sonar-token
+#               secret: "${SONAR_TOKEN:-a-definir}"
+#               description: Jeton SonarQube
