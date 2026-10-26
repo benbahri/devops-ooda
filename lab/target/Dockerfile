@@ -6,6 +6,7 @@ RUN useradd -m -s /bin/bash deploy \
  && echo "deploy ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/deploy
 # La cle publique est injectee au demarrage depuis le volume partage (voir entrypoint)
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# sed : retire les fins de ligne Windows (CRLF) qui provoquent "exec /entrypoint.sh: no such file or directory"
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 EXPOSE 22 8080
 ENTRYPOINT ["/entrypoint.sh"]

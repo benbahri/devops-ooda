@@ -3,7 +3,7 @@
 # Lab uniquement : identifiants admin/admin.
 #
 # Application :
-#   a chaud : Manage Jenkins > System > Configuration as Code > "Path or URL"
+#   a chaud : Manage Jenkins > Configuration as Code > "Path or URL"
 #             = /var/jenkins_home/casc/jenkins.yaml > "Apply new configuration"
 #   au demarrage : variable CASC_JENKINS_CONFIG (voir docker-compose.yml, ligne commentee)
 
@@ -52,3 +52,9 @@ unclassified:                           # Manage Jenkins > System
 #               id: sonar-token
 #               secret: "${SONAR_TOKEN:-a-definir}"
 #               description: Jeton SonarQube
+#           - usernamePassword:
+#               scope: GLOBAL
+#               id: gitlab-token
+#               username: "${GITLAB_USER:-a-definir}"
+#               password: "${GITLAB_TOKEN:-a-definir}"
+#               description: Acces au depot GitLab prive
