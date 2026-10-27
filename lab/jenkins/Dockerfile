@@ -1,8 +1,13 @@
 FROM jenkins/jenkins:lts-jdk21
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      maven ansible openssh-client docker.io curl ca-certificates \
+      maven ansible openssh-client curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+# Client Docker seul (binaire officiel : independant de la version de Debian).
+# Le daemon est celui de l'hote, atteint via /var/run/docker.sock.
+RUN curl -fsSL "https://download.docker.com/linux/static/stable/$(uname -m)/docker-27.3.1.tgz" \
+  | tar -xz -C /usr/local/bin --strip-components=1 docker/docker \
+ && docker --version
 # kubectl et kind (architecture detectee)
 RUN ARCH=$(dpkg --print-architecture) \
  && curl -fsSL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/v1.31.0/bin/linux/${ARCH}/kubectl" \
